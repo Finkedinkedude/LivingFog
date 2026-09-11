@@ -1,0 +1,46 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Living Fog: Connect GitHub repository",
+      "type": "shell",
+      "command": "bash",
+      "args": ["./tools/setup-git.sh"],
+      "windows": {
+        "command": "powershell",
+        "args": ["-NoProfile", "-ExecutionPolicy", "Bypass", "-File", ".\\tools\\setup-git.ps1"]
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Living Fog: Git status",
+      "type": "shell",
+      "command": "git",
+      "args": ["status", "--short", "--branch"],
+      "problemMatcher": []
+    },
+    {
+      "label": "Living Fog: Syntax check",
+      "type": "shell",
+      "command": "node",
+      "args": ["--check", "scripts/living-fog.mjs"],
+      "problemMatcher": []
+    },
+    {
+      "label": "Living Fog: Build release ZIP from HEAD",
+      "type": "shell",
+      "command": "git",
+      "args": [
+        "archive",
+        "--format=zip",
+        "--output=dist/living-fog.zip",
+        "HEAD",
+        "module.json",
+        "README.md",
+        "CHANGELOG.md",
+        "scripts"
+      ],
+      "problemMatcher": []
+    }
+  ]
+}
