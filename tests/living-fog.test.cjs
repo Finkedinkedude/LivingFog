@@ -11,6 +11,8 @@ void main() {
   vec4 unexplored = vec4(0.0);
   vec4 explored = vec4(0.0);
   vec4 fow = mix(unexplored, explored, max(r,v));
+  gl_FragColor = mix(fow, vec4(0.0), v);
+  gl_FragColor.rgb *= gl_FragColor.a;
 }
 `;
 
@@ -61,15 +63,17 @@ assert.equal(normalFilter.uniforms.uLivingFogScale, 3.2);
 assert.equal(normalFilter.uniforms.uLivingFogEdgeStrength, 0.65);
 assert.equal(VisibilityFilter.lastShaderOptions.persistentVision, false);
 assert.equal(normalFilter.fragmentShader.match(/uniform vec2 screenDimensions;/g)?.length, 1);
-assert.match(normalFilter.fragmentShader, /vec4 fow = mix\(unexplored, explored, lfExploration\)/);
-assert.match(normalFilter.fragmentShader, /fow\.rgb = clamp/);
+assert.match(normalFilter.fragmentShader, /vec4 fow = vec4\(lfFogRgb, 1\.0\)/);
+assert.match(normalFilter.fragmentShader, /float lfWarpX = lfFbm/);
+assert.match(normalFilter.fragmentShader, /float lfPulse = .+uLivingFogTime/);
 assert.match(normalFilter.fragmentShader, /v \*= mix\(1\.0, lfFlowingVision, uLivingFogEdgeStrength\)/);
-assert.doesNotMatch(normalFilter.fragmentShader, /lfStockFow|lfLivingFow|lfUnexploredFog/);
+assert.match(normalFilter.fragmentShader, /gl_FragColor = mix\(fow, vec4\(0\.0\), v\)/);
+assert.doesNotMatch(normalFilter.fragmentShader, /vec4 fow = mix\(unexplored, explored|lfStockFow|lfLivingFow|lfUnexploredFog/);
 
 const persistentFilter = VisibilityFilter.create({}, { persistentVision: true });
 assert.equal(persistentFilter.uniforms.uLivingFogEdgeStrength, 0.65);
 assert.equal(VisibilityFilter.lastShaderOptions.persistentVision, false);
-assert.match(persistentFilter.fragmentShader, /fow\.rgb = clamp/);
+assert.match(persistentFilter.fragmentShader, /vec4 fow = vec4\(lfFogRgb, 1\.0\)/);
 
 const unsupportedFilter = VisibilityFilter.create({}, { unsupported: true });
 assert.equal(unsupportedFilter.fragmentShader, "void main() {}");

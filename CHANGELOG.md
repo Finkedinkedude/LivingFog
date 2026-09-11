@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.3.0
+
+- Removed Foundry's map-derived `explored`, `unexplored`, `fogColor`, and `baseColor` values from the Living Fog output.
+- Hidden output is now always an independent black procedural color with alpha `1.0`; only Foundry's current-vision mask can make it transparent.
+- Replaced simple cloud translation with animated domain-warped FBM and time-based evolution so the fog visibly moves and changes shape.
+- Retained flowing boundaries that only push fog inward and cannot expose hidden pixels.
+
 ## 0.2.1
 
 - Fixed the v0.2.0 fragment shader compile failure by explicitly declaring its `screenDimensions` uniform when Foundry's flat-color shader does not declare it.

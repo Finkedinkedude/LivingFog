@@ -2,9 +2,9 @@
 
 A small Foundry VTT v14 module that makes fog of war feel alive while leaving Foundry's walls, token vision, LOS, and fog exploration logic alone.
 
-## v0.2.1
+## v0.3.0
 
-Living Fog keeps Foundry's normal flat-color fog as the base and draws procedural brightness variation over that fog. While enabled, it does not use Foundry's map-derived persistent-vision rendering path.
+Living Fog renders an independent animated black fog layer and lets Foundry's current-vision mask cut transparent openings into it. The fog output never uses map-derived explored colors or map pixels.
 
 - Currently visible areas remain normal Foundry vision.
 - Unexplored areas are covered by opaque animated fog.
@@ -58,7 +58,9 @@ A useful stress test is to place a token in one room, put another room behind a 
 
 Foundry v14 uses `foundry.canvas.rendering.filters.VisibilityFilter` to composite visible, explored, and unexplored regions. Living Fog wraps `_createFragmentShader` and replaces only the fog-color composition step.
 
-The module forces Foundry's normal flat-color fog shader while enabled and adds procedural brightness only after Foundry has constructed that fog color. The generated texture never samples the underlying map or primary texture.
+The module forces Foundry's current-vision shader variant while enabled, but replaces its complete hidden output with black plus procedural brightness at alpha `1.0`. Foundry's map-derived `baseColor`, explored color, unexplored color, and optional fog image do not participate in Living Fog's output.
+
+The animation uses domain-warped FBM: multiple noise fields move in different directions and distort one another while a time component changes the cloud shapes. It is not a static image or a single texture translated across the screen.
 
 For flowing boundaries, Living Fog only reduces Foundry's softened current-vision value near the edge. This allows fog to curl inward over a narrow strip of visible pixels but mathematically cannot increase visibility or expose hidden pixels.
 

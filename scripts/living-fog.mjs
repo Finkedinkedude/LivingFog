@@ -1,5 +1,5 @@
 const MODULE_ID = "living-fog";
-const VERSION = "0.2.1";
+const VERSION = "0.3.0";
 
 const SETTINGS = {
   enabled: "enabled",
@@ -220,19 +220,26 @@ float lfFbm(vec2 p) {
     const fogComposition = `
 vec2 lfResolution = max(screenDimensions, vec2(1.0));
 vec2 lfUv = gl_FragCoord.xy / lfResolution;
-vec2 lfDrift = vec2(0.071, 0.037) * uLivingFogTime;
+vec2 lfPosition = lfUv * uLivingFogScale;
+vec2 lfDrift = vec2(0.22, 0.11) * uLivingFogTime;
 
-float lfBase = lfFbm((lfUv * uLivingFogScale) + lfDrift);
-float lfDetail = lfFbm((lfUv * (uLivingFogScale * 1.85)) - (lfDrift * 0.63) + vec2(4.2, 9.7));
-float lfPattern = smoothstep(0.20, 0.82, mix(lfBase, lfDetail, 0.35));
-float lfCentered = (lfPattern - 0.50) * 2.0;
+// Domain warping makes the fog continuously evolve instead of translating one
+// static cloud image across the screen.
+float lfWarpX = lfFbm((lfPosition * 0.55) + lfDrift + vec2(2.7, 8.1));
+float lfWarpY = lfFbm((lfPosition * 0.55) - (lfDrift * 0.73) + vec2(9.4, 1.6));
+vec2 lfWarp = (vec2(lfWarpX, lfWarpY) - vec2(0.5)) * 1.15;
+float lfBase = lfFbm(lfPosition + lfDrift + lfWarp);
+float lfDetail = lfFbm((lfPosition * 1.9) - (lfDrift * 0.68) - (lfWarp * 0.42) + vec2(4.2, 9.7));
+float lfPulse = 0.5 + (0.5 * sin((uLivingFogTime * 0.85) + (lfBase * 3.14159)));
+float lfPattern = smoothstep(0.18, 0.84, mix(lfBase, lfDetail, 0.32) + ((lfPulse - 0.5) * 0.12));
 
-// Keep Foundry's flat fog composition and place animated brightness over it.
-// No map or primary texture contributes to this procedural color.
-float lfExploration = clamp(max(r, v), 0.0, 1.0);
+// Hidden fog is constructed from black plus procedural brightness only. Neither
+// Foundry's explored/unexplored colors nor its baseColor/map sample participates.
+float lfExploration = clamp(r, 0.0, 1.0);
 float lfTextureStrength = mix(uLivingFogStrength, uLivingFogExploredStrength, lfExploration);
-vec4 fow = mix(unexplored, explored, lfExploration);
-fow.rgb = clamp(fow.rgb + vec3(lfCentered * lfTextureStrength), 0.0, 1.0);
+float lfFogBrightness = clamp(0.012 + (lfPattern * lfTextureStrength), 0.0, 0.32);
+vec3 lfFogRgb = vec3(lfFogBrightness);
+vec4 fow = vec4(lfFogRgb, 1.0);
 
 // Foundry already softens v at vision boundaries. Raising its threshold with
 // animated noise can only reduce v, pushing fog inward over visible pixels. It
