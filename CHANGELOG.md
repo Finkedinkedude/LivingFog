@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.0
+
+- Replaced the opaque replacement-material approach with Foundry's stock flat-color fog plus an independent procedural brightness overlay.
+- Force the non-persistent, flat-color fog shader while Living Fog is enabled so explored fog never derives its appearance from map pixels.
+- Added animated flowing fog edges which only push fog inward over visible pixels and can never reveal hidden pixels.
+- Added the **Fog Edge Flow** world setting.
+
 ## 0.1.3
 
 - Initialize the custom shader uniforms when Foundry creates `VisibilityFilter`, preventing WebGL's zero defaults from silently selecting stock explored fog.

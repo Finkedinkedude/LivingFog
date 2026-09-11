@@ -1,12 +1,13 @@
 const MODULE_ID = "living-fog";
-const VERSION = "0.1.3";
+const VERSION = "0.2.0";
 
 const SETTINGS = {
   enabled: "enabled",
   speed: "speed",
   scale: "scale",
   strength: "strength",
-  exploredStrength: "exploredStrength"
+  exploredStrength: "exploredStrength",
+  edgeStrength: "edgeStrength"
 };
 
 const state = {
@@ -15,11 +16,13 @@ const state = {
   shaderPatchMatched: false,
   filter: null,
   reportedUniformFailure: false,
+  reportedReady: false,
   enabled: true,
   speed: 0.12,
   scale: 3.2,
   strength: 0.075,
-  exploredStrength: 0.03
+  exploredStrength: 0.03,
+  edgeStrength: 0.65
 };
 
 Hooks.once("init", () => {
@@ -35,10 +38,15 @@ Hooks.once("ready", () => {
 });
 
 Hooks.on("canvasReady", () => {
-  if (!applyUniforms() && !state.reportedUniformFailure) {
+  const initialized = applyUniforms();
+  if (state.enabled && !initialized && !state.reportedUniformFailure) {
     state.reportedUniformFailure = true;
     ui.notifications.error("Living Fog could not initialize its visibility shader. Check the browser console.");
     console.error(`${MODULE_ID} | The active VisibilityFilter does not expose the Living Fog uniforms.`);
+  }
+  else if (state.enabled && initialized && !state.reportedReady) {
+    state.reportedReady = true;
+    ui.notifications.info(`Living Fog v${VERSION}: flat fog overlay active.`);
   }
 });
 
@@ -49,14 +57,14 @@ Hooks.on("sightRefresh", () => {
 function registerSettings() {
   game.settings.register(MODULE_ID, SETTINGS.enabled, {
     name: "Enable Living Fog",
-    hint: "Replace hidden fog areas with an opaque animated fog material. Vision, walls, and fog exploration are unchanged.",
+    hint: "Add animated texture and flowing edges over Foundry's flat fog. Vision, walls, and fog exploration are unchanged.",
     scope: "world",
     config: true,
     type: Boolean,
     default: true,
+    requiresReload: true,
     onChange: value => {
       state.enabled = value;
-      applyUniforms();
     }
   });
 
@@ -115,6 +123,20 @@ function registerSettings() {
       applyUniforms();
     }
   });
+
+  game.settings.register(MODULE_ID, SETTINGS.edgeStrength, {
+    name: "Fog Edge Flow",
+    hint: "Makes fog curl inward over the visible side of vision boundaries. This never retracts fog into hidden areas.",
+    scope: "world",
+    config: true,
+    type: Number,
+    range: { min: 0, max: 1, step: 0.05 },
+    default: 0.65,
+    onChange: value => {
+      state.edgeStrength = value;
+      applyUniforms();
+    }
+  });
 }
 
 function readSettings() {
@@ -123,6 +145,7 @@ function readSettings() {
   state.scale = game.settings.get(MODULE_ID, SETTINGS.scale);
   state.strength = game.settings.get(MODULE_ID, SETTINGS.strength);
   state.exploredStrength = game.settings.get(MODULE_ID, SETTINGS.exploredStrength);
+  state.edgeStrength = game.settings.get(MODULE_ID, SETTINGS.edgeStrength);
 }
 
 function patchVisibilityShader() {
@@ -138,22 +161,26 @@ function patchVisibilityShader() {
   const originalCreate = VisibilityFilter.create;
 
   VisibilityFilter._createFragmentShader = function(options = {}) {
-    let source = original(options);
+    if (!state.enabled) return original(options);
+
+    // Use Foundry's flat-color fog path as the base. The persistent-vision path
+    // derives explored fog from the map, which an animated overlay must never do.
+    let source = original({ ...options, persistentVision: false });
     const uniformMarker = "uniform vec3 unexploredColor;";
     const compositionMarker = "vec4 fow = mix(unexplored, explored, max(r,v));";
 
     if ((countOccurrences(source, uniformMarker) !== 1) || (countOccurrences(source, compositionMarker) !== 1)) {
       console.warn(`${MODULE_ID} | Visibility shader layout was not recognized; Living Fog was not injected.`);
-      return source;
+      return original(options);
     }
 
     const fogShaderCode = `
 ${uniformMarker}
-uniform float uLivingFogEnabled;
 uniform float uLivingFogTime;
 uniform float uLivingFogScale;
 uniform float uLivingFogStrength;
 uniform float uLivingFogExploredStrength;
+uniform float uLivingFogEdgeStrength;
 
 float lfHash(vec2 p) {
   p = fract(p * vec2(123.34, 456.21));
@@ -194,10 +221,6 @@ float lfFbm(vec2 p) {
     source = source.replace(uniformMarker, fogShaderCode);
 
     const fogComposition = `
-// Preserve Foundry's stock fog composition so disabling Living Fog restores the
-// original appearance without requiring the visibility shader to be rebuilt.
-vec4 lfStockFow = mix(unexplored, explored, max(r,v));
-
 vec2 lfResolution = max(screenDimensions, vec2(1.0));
 vec2 lfUv = gl_FragCoord.xy / lfResolution;
 vec2 lfDrift = vec2(0.071, 0.037) * uLivingFogTime;
@@ -207,16 +230,19 @@ float lfDetail = lfFbm((lfUv * (uLivingFogScale * 1.85)) - (lfDrift * 0.63) + ve
 float lfPattern = smoothstep(0.20, 0.82, mix(lfBase, lfDetail, 0.35));
 float lfCentered = (lfPattern - 0.50) * 2.0;
 
-// Important: these colors are created independently from the map/primary texture.
-// Both explored and unexplored fog are fully opaque. This prevents map detail from
-// bleeding through walls while still allowing the fog material itself to move.
-vec3 lfUnexploredRgb = clamp(unexploredColor + vec3(lfCentered * uLivingFogStrength), 0.0, 1.0);
-vec3 lfExploredRgb = clamp(exploredColor + vec3(lfCentered * uLivingFogExploredStrength), 0.0, 1.0);
-vec4 lfUnexploredFog = vec4(lfUnexploredRgb, 1.0);
-vec4 lfExploredFog = vec4(lfExploredRgb, 1.0);
-vec4 lfLivingFow = mix(lfUnexploredFog, lfExploredFog, max(r,v));
+// Keep Foundry's flat fog composition and place animated brightness over it.
+// No map or primary texture contributes to this procedural color.
+float lfExploration = clamp(max(r, v), 0.0, 1.0);
+float lfTextureStrength = mix(uLivingFogStrength, uLivingFogExploredStrength, lfExploration);
+vec4 fow = mix(unexplored, explored, lfExploration);
+fow.rgb = clamp(fow.rgb + vec3(lfCentered * lfTextureStrength), 0.0, 1.0);
 
-vec4 fow = mix(lfStockFow, lfLivingFow, step(0.5, uLivingFogEnabled));`;
+// Foundry already softens v at vision boundaries. Raising its threshold with
+// animated noise can only reduce v, pushing fog inward over visible pixels. It
+// never increases v and therefore can never reveal a hidden map pixel.
+float lfEdgeThreshold = uLivingFogEdgeStrength * mix(0.18, 0.58, lfPattern);
+float lfFlowingVision = smoothstep(lfEdgeThreshold, min(lfEdgeThreshold + 0.28, 0.96), v);
+v *= mix(1.0, lfFlowingVision, uLivingFogEdgeStrength);`;
 
     source = source.replace(compositionMarker, fogComposition);
     state.shaderPatchMatched = true;
@@ -225,11 +251,11 @@ vec4 fow = mix(lfStockFow, lfLivingFow, step(0.5, uLivingFogEnabled));`;
 
   VisibilityFilter.create = function(uniforms = {}, options = {}) {
     const filter = originalCreate.call(this, {
-      uLivingFogEnabled: state.enabled ? 1 : 0,
       uLivingFogTime: (performance.now() / 1000) * state.speed,
       uLivingFogScale: state.scale,
       uLivingFogStrength: state.strength,
       uLivingFogExploredStrength: state.exploredStrength,
+      uLivingFogEdgeStrength: state.edgeStrength,
       ...uniforms
     }, options);
 
@@ -261,22 +287,22 @@ function updateAnimation() {
   if (!filter?.uniforms) return;
 
   const t = performance.now() / 1000;
-  filter.uniforms.uLivingFogEnabled = state.enabled ? 1 : 0;
   filter.uniforms.uLivingFogTime = t * state.speed;
   filter.uniforms.uLivingFogScale = state.scale;
-  filter.uniforms.uLivingFogStrength = state.strength;
-  filter.uniforms.uLivingFogExploredStrength = state.exploredStrength;
+  filter.uniforms.uLivingFogStrength = state.enabled ? state.strength : 0;
+  filter.uniforms.uLivingFogExploredStrength = state.enabled ? state.exploredStrength : 0;
+  filter.uniforms.uLivingFogEdgeStrength = state.enabled ? state.edgeStrength : 0;
 }
 
 function applyUniforms() {
   const filter = getVisibilityFilter();
-  if (!filter?.uniforms || !("uLivingFogEnabled" in filter.uniforms)) return false;
+  if (!filter?.uniforms || !("uLivingFogEdgeStrength" in filter.uniforms)) return false;
 
-  filter.uniforms.uLivingFogEnabled = state.enabled ? 1 : 0;
   filter.uniforms.uLivingFogTime = (performance.now() / 1000) * state.speed;
   filter.uniforms.uLivingFogScale = state.scale;
-  filter.uniforms.uLivingFogStrength = state.strength;
-  filter.uniforms.uLivingFogExploredStrength = state.exploredStrength;
+  filter.uniforms.uLivingFogStrength = state.enabled ? state.strength : 0;
+  filter.uniforms.uLivingFogExploredStrength = state.enabled ? state.exploredStrength : 0;
+  filter.uniforms.uLivingFogEdgeStrength = state.enabled ? state.edgeStrength : 0;
   return true;
 }
 

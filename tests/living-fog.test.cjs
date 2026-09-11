@@ -17,6 +17,7 @@ void main() {
 
 class VisibilityFilter {
   static _createFragmentShader(options = {}) {
+    this.lastShaderOptions = options;
     return options.unsupported ? "void main() {}" : shaderSource;
   }
 
@@ -44,7 +45,12 @@ const context = {
   },
   foundry: { canvas: { rendering: { filters: { VisibilityFilter } } } },
   canvas: { app: { ticker: { add: () => {} } }, visibility: {} },
-  ui: { notifications: { error: message => { throw new Error(message); } } }
+  ui: {
+    notifications: {
+      error: message => { throw new Error(message); },
+      info: () => {}
+    }
+  }
 };
 
 const moduleSource = fs.readFileSync("scripts/living-fog.mjs", "utf8");
@@ -52,19 +58,23 @@ vm.runInNewContext(moduleSource, context, { filename: "living-fog.mjs" });
 hooks.once.init();
 
 const normalFilter = VisibilityFilter.create({}, {});
-assert.equal(normalFilter.uniforms.uLivingFogEnabled, 1);
 assert.equal(normalFilter.uniforms.uLivingFogScale, 3.2);
-assert.match(normalFilter.fragmentShader, /vec4 lfUnexploredFog = vec4\(lfUnexploredRgb, 1\.0\)/);
-assert.match(normalFilter.fragmentShader, /vec4 lfExploredFog = vec4\(lfExploredRgb, 1\.0\)/);
+assert.equal(normalFilter.uniforms.uLivingFogEdgeStrength, 0.65);
+assert.equal(VisibilityFilter.lastShaderOptions.persistentVision, false);
+assert.match(normalFilter.fragmentShader, /vec4 fow = mix\(unexplored, explored, lfExploration\)/);
+assert.match(normalFilter.fragmentShader, /fow\.rgb = clamp/);
+assert.match(normalFilter.fragmentShader, /v \*= mix\(1\.0, lfFlowingVision, uLivingFogEdgeStrength\)/);
+assert.doesNotMatch(normalFilter.fragmentShader, /lfStockFow|lfLivingFow|lfUnexploredFog/);
 
 const persistentFilter = VisibilityFilter.create({}, { persistentVision: true });
-assert.equal(persistentFilter.uniforms.uLivingFogEnabled, 1);
-assert.match(persistentFilter.fragmentShader, /vec4 lfLivingFow/);
+assert.equal(persistentFilter.uniforms.uLivingFogEdgeStrength, 0.65);
+assert.equal(VisibilityFilter.lastShaderOptions.persistentVision, false);
+assert.match(persistentFilter.fragmentShader, /fow\.rgb = clamp/);
 
 const unsupportedFilter = VisibilityFilter.create({}, { unsupported: true });
 assert.equal(unsupportedFilter.fragmentShader, "void main() {}");
 
 hooks.on.canvasReady();
-assert.equal(persistentFilter.uniforms.uLivingFogEnabled, 1);
+assert.equal(persistentFilter.uniforms.uLivingFogEdgeStrength, 0.65);
 
 console.log("Living Fog shader initialization tests passed.");

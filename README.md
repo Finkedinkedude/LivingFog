@@ -2,9 +2,9 @@
 
 A small Foundry VTT v14 module that makes fog of war feel alive while leaving Foundry's walls, token vision, LOS, and fog exploration logic alone.
 
-## v0.1.3
+## v0.2.0
 
-Living Fog creates an opaque animated fog material for areas that are not currently visible, including Foundry's persistent-vision rendering path.
+Living Fog keeps Foundry's normal flat-color fog as the base and draws procedural brightness variation over that fog. While enabled, it does not use Foundry's map-derived persistent-vision rendering path.
 
 - Currently visible areas remain normal Foundry vision.
 - Unexplored areas are covered by opaque animated fog.
@@ -22,6 +22,7 @@ The module deliberately does not reveal map detail through the fog. Explored are
 - **Fog Scale**: controls the size of the procedural cloud forms.
 - **Unexplored Fog Texture Strength**: controls animated contrast in unexplored fog.
 - **Explored Fog Texture Strength**: controls animated contrast in explored-but-not-visible fog.
+- **Fog Edge Flow**: controls animated curls extending inward onto the visible side of fog boundaries. It never retracts fog into hidden space.
 
 Recommended starting values:
 
@@ -29,6 +30,7 @@ Recommended starting values:
 - Fog Scale: `3.2`
 - Unexplored Strength: `0.075`
 - Explored Strength: `0.03`
+- Fog Edge Flow: `0.65`
 
 ## Installation for local testing
 
@@ -56,9 +58,9 @@ A useful stress test is to place a token in one room, put another room behind a 
 
 Foundry v14 uses `foundry.canvas.rendering.filters.VisibilityFilter` to composite visible, explored, and unexplored regions. Living Fog wraps `_createFragmentShader` and replaces only the fog-color composition step.
 
-The module builds independent opaque colors from `unexploredColor` and `exploredColor`, applies procedural noise to those colors, and leaves Foundry's current-vision mask responsible for revealing the map. The generated fog color never samples the underlying map or primary texture.
+The module forces Foundry's normal flat-color fog shader while enabled and adds procedural brightness only after Foundry has constructed that fog color. The generated texture never samples the underlying map or primary texture.
 
-The same opaque composition is used for the normal and persistent-vision shader variants. If Foundry changes either shader so the supported markers are not present exactly once, Living Fog fails closed: it leaves the stock shader unchanged and logs a warning to the browser console.
+For flowing boundaries, Living Fog only reduces Foundry's softened current-vision value near the edge. This allows fog to curl inward over a narrow strip of visible pixels but mathematically cannot increase visibility or expose hidden pixels.
 
 Living Fog supplies its custom uniform values when Foundry creates the visibility filter. If those uniforms are unavailable on the active filter, the module displays an error instead of silently falling back to stock explored fog.
 

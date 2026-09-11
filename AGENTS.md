@@ -10,7 +10,7 @@ The purpose of this module is purely visual: make hidden fog-of-war areas feel a
 
 Repository: https://github.com/Finkedinkedude/LivingFog
 Module id: `living-fog`
-Current local development version in this project: `0.1.3`
+Current local development version in this project: `0.2.0`
 Target Foundry version: v14, currently verified against the v14.365 API layout.
 
 ## Non-negotiable behavior
@@ -44,7 +44,7 @@ The current code builds independent explored and unexplored fog colors with alph
 The intended composition is:
 
 1. Foundry determines visible/explored/unexplored regions.
-2. Hidden regions get an opaque procedural fog material.
+2. Hidden regions keep Foundry's flat-color fog and receive procedural brightness variation over it.
 3. Visible regions remain the normal map.
 4. Hidden map artwork must contribute zero visible detail to the fog material.
 
@@ -77,6 +77,10 @@ The v0.1.1 code also bypassed the persistent-vision shader variant. That fallbac
 ### v0.1.3 - uniform initialization fix
 
 The v0.1.2 shader declared custom uniforms but relied on assigning them later through `canvas.visibility.filter`. If that lookup did not reach the created filter, WebGL left `uLivingFogEnabled` at zero and the shader selected Foundry's stock explored fog. v0.1.3 injects initial uniform values through `VisibilityFilter.create`, retains the created filter reference, and reports missing uniforms visibly.
+
+### v0.2.0 - stock fog plus overlay
+
+The replacement-material approach was abandoned after real-client testing showed Foundry continued to display its map-derived explored fog. While enabled, v0.2.0 explicitly requests Foundry's non-persistent flat-color fog shader and adds procedural brightness only to that fog color. It also distorts the softened vision boundary only by reducing its visibility value, making fog flow inward without ever revealing a hidden pixel.
 
 ## Current settings
 
