@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.3
+
+- Initialize the custom shader uniforms when Foundry creates `VisibilityFilter`, preventing WebGL's zero defaults from silently selecting stock explored fog.
+- Keep a direct reference to the created filter instead of relying only on a canvas property lookup.
+- Show an explicit error when the active filter does not contain the Living Fog uniforms.
+
 ## 0.1.2
 
 - Fixed committed merge-conflict markers which prevented the module manifest and script from loading.

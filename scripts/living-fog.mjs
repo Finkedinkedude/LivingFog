@@ -1,5 +1,5 @@
 const MODULE_ID = "living-fog";
-const VERSION = "0.1.2";
+const VERSION = "0.1.3";
 
 const SETTINGS = {
   enabled: "enabled",
@@ -13,6 +13,8 @@ const state = {
   installedShaderPatch: false,
   tickerInstalled: false,
   shaderPatchMatched: false,
+  filter: null,
+  reportedUniformFailure: false,
   enabled: true,
   speed: 0.12,
   scale: 3.2,
@@ -33,7 +35,11 @@ Hooks.once("ready", () => {
 });
 
 Hooks.on("canvasReady", () => {
-  applyUniforms();
+  if (!applyUniforms() && !state.reportedUniformFailure) {
+    state.reportedUniformFailure = true;
+    ui.notifications.error("Living Fog could not initialize its visibility shader. Check the browser console.");
+    console.error(`${MODULE_ID} | The active VisibilityFilter does not expose the Living Fog uniforms.`);
+  }
 });
 
 Hooks.on("sightRefresh", () => {
@@ -129,6 +135,7 @@ function patchVisibilityShader() {
   }
 
   const original = VisibilityFilter._createFragmentShader.bind(VisibilityFilter);
+  const originalCreate = VisibilityFilter.create;
 
   VisibilityFilter._createFragmentShader = function(options = {}) {
     let source = original(options);
@@ -216,6 +223,20 @@ vec4 fow = mix(lfStockFow, lfLivingFow, step(0.5, uLivingFogEnabled));`;
     return source;
   };
 
+  VisibilityFilter.create = function(uniforms = {}, options = {}) {
+    const filter = originalCreate.call(this, {
+      uLivingFogEnabled: state.enabled ? 1 : 0,
+      uLivingFogTime: (performance.now() / 1000) * state.speed,
+      uLivingFogScale: state.scale,
+      uLivingFogStrength: state.strength,
+      uLivingFogExploredStrength: state.exploredStrength,
+      ...uniforms
+    }, options);
+
+    state.filter = filter;
+    return filter;
+  };
+
   state.installedShaderPatch = true;
   console.info(`${MODULE_ID} | Visibility shader patch installed.`);
 }
@@ -236,7 +257,7 @@ function installTicker() {
 }
 
 function updateAnimation() {
-  const filter = canvas?.visibility?.filter;
+  const filter = getVisibilityFilter();
   if (!filter?.uniforms) return;
 
   const t = performance.now() / 1000;
@@ -248,12 +269,17 @@ function updateAnimation() {
 }
 
 function applyUniforms() {
-  const filter = canvas?.visibility?.filter;
-  if (!filter?.uniforms) return;
+  const filter = getVisibilityFilter();
+  if (!filter?.uniforms || !("uLivingFogEnabled" in filter.uniforms)) return false;
 
   filter.uniforms.uLivingFogEnabled = state.enabled ? 1 : 0;
   filter.uniforms.uLivingFogTime = (performance.now() / 1000) * state.speed;
   filter.uniforms.uLivingFogScale = state.scale;
   filter.uniforms.uLivingFogStrength = state.strength;
   filter.uniforms.uLivingFogExploredStrength = state.exploredStrength;
+  return true;
+}
+
+function getVisibilityFilter() {
+  return state.filter ?? canvas?.visibility?.filter ?? null;
 }

@@ -2,7 +2,7 @@
 
 A small Foundry VTT v14 module that makes fog of war feel alive while leaving Foundry's walls, token vision, LOS, and fog exploration logic alone.
 
-## v0.1.2
+## v0.1.3
 
 Living Fog creates an opaque animated fog material for areas that are not currently visible, including Foundry's persistent-vision rendering path.
 
@@ -59,6 +59,8 @@ Foundry v14 uses `foundry.canvas.rendering.filters.VisibilityFilter` to composit
 The module builds independent opaque colors from `unexploredColor` and `exploredColor`, applies procedural noise to those colors, and leaves Foundry's current-vision mask responsible for revealing the map. The generated fog color never samples the underlying map or primary texture.
 
 The same opaque composition is used for the normal and persistent-vision shader variants. If Foundry changes either shader so the supported markers are not present exactly once, Living Fog fails closed: it leaves the stock shader unchanged and logs a warning to the browser console.
+
+Living Fog supplies its custom uniform values when Foundry creates the visibility filter. If those uniforms are unavailable on the active filter, the module displays an error instead of silently falling back to stock explored fog.
 
 The procedural pattern is currently screen-space. World-space anchoring is planned for a later version.
 
