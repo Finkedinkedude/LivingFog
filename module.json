@@ -3,12 +3,20 @@
   "title": "Living Fog",
   "description": "Adds subtle procedural motion to Foundry VTT's fog of war without changing walls, token vision, or fog exploration logic.",
   "version": "0.1.0",
+  "authors": [
+    {
+      "name": "Finkedinkedude",
+      "url": "https://github.com/Finkedinkedude"
+    }
+  ],
   "compatibility": {
     "minimum": "14",
-    "verified": "14.365",
-    "maximum": "14.999"
+    "verified": "14.365"
   },
   "esmodules": [
     "scripts/living-fog.mjs"
-  ]
+  ],
+  "url": "https://github.com/Finkedinkedude/LivingFog",
+  "manifest": "https://raw.githubusercontent.com/Finkedinkedude/LivingFog/main/module.json",
+  "download": "https://github.com/Finkedinkedude/LivingFog/releases/download/v0.1.0/living-fog.zip"
 }
