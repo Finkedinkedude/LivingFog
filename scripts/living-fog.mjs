@@ -1,5 +1,5 @@
 const MODULE_ID = "living-fog";
-const VERSION = "0.2.0";
+const VERSION = "0.2.1";
 
 const SETTINGS = {
   enabled: "enabled",
@@ -16,7 +16,6 @@ const state = {
   shaderPatchMatched: false,
   filter: null,
   reportedUniformFailure: false,
-  reportedReady: false,
   enabled: true,
   speed: 0.12,
   scale: 3.2,
@@ -43,10 +42,6 @@ Hooks.on("canvasReady", () => {
     state.reportedUniformFailure = true;
     ui.notifications.error("Living Fog could not initialize its visibility shader. Check the browser console.");
     console.error(`${MODULE_ID} | The active VisibilityFilter does not expose the Living Fog uniforms.`);
-  }
-  else if (state.enabled && initialized && !state.reportedReady) {
-    state.reportedReady = true;
-    ui.notifications.info(`Living Fog v${VERSION}: flat fog overlay active.`);
   }
 });
 
@@ -167,6 +162,7 @@ function patchVisibilityShader() {
     // derives explored fog from the map, which an animated overlay must never do.
     let source = original({ ...options, persistentVision: false });
     const uniformMarker = "uniform vec3 unexploredColor;";
+    const resolutionUniform = "uniform vec2 screenDimensions;";
     const compositionMarker = "vec4 fow = mix(unexplored, explored, max(r,v));";
 
     if ((countOccurrences(source, uniformMarker) !== 1) || (countOccurrences(source, compositionMarker) !== 1)) {
@@ -176,6 +172,7 @@ function patchVisibilityShader() {
 
     const fogShaderCode = `
 ${uniformMarker}
+${source.includes(resolutionUniform) ? "" : resolutionUniform}
 uniform float uLivingFogTime;
 uniform float uLivingFogScale;
 uniform float uLivingFogStrength;

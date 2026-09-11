@@ -4,7 +4,6 @@ const vm = require("node:vm");
 
 const hooks = { once: {}, on: {} };
 const shaderSource = `
-uniform vec2 screenDimensions;
 uniform vec3 unexploredColor;
 void main() {
   float r = 0.0;
@@ -61,6 +60,7 @@ const normalFilter = VisibilityFilter.create({}, {});
 assert.equal(normalFilter.uniforms.uLivingFogScale, 3.2);
 assert.equal(normalFilter.uniforms.uLivingFogEdgeStrength, 0.65);
 assert.equal(VisibilityFilter.lastShaderOptions.persistentVision, false);
+assert.equal(normalFilter.fragmentShader.match(/uniform vec2 screenDimensions;/g)?.length, 1);
 assert.match(normalFilter.fragmentShader, /vec4 fow = mix\(unexplored, explored, lfExploration\)/);
 assert.match(normalFilter.fragmentShader, /fow\.rgb = clamp/);
 assert.match(normalFilter.fragmentShader, /v \*= mix\(1\.0, lfFlowingVision, uLivingFogEdgeStrength\)/);

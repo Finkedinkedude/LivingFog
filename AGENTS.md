@@ -10,7 +10,7 @@ The purpose of this module is purely visual: make hidden fog-of-war areas feel a
 
 Repository: https://github.com/Finkedinkedude/LivingFog
 Module id: `living-fog`
-Current local development version in this project: `0.2.0`
+Current local development version in this project: `0.2.1`
 Target Foundry version: v14, currently verified against the v14.365 API layout.
 
 ## Non-negotiable behavior
@@ -81,6 +81,10 @@ The v0.1.2 shader declared custom uniforms but relied on assigning them later th
 ### v0.2.0 - stock fog plus overlay
 
 The replacement-material approach was abandoned after real-client testing showed Foundry continued to display its map-derived explored fog. While enabled, v0.2.0 explicitly requests Foundry's non-persistent flat-color fog shader and adds procedural brightness only to that fog color. It also distorts the softened vision boundary only by reducing its visibility value, making fog flow inward without ever revealing a hidden pixel.
+
+### v0.2.1 - shader declaration fix
+
+The v0.2.0 flat-color fragment shader did not declare `screenDimensions`, so the injected shader failed GPU compilation and Foundry displayed no Living Fog effect. v0.2.1 conditionally injects that uniform declaration and tests the actual declaration shape of the flat-color shader.
 
 ## Current settings
 

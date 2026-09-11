@@ -2,7 +2,7 @@
 
 A small Foundry VTT v14 module that makes fog of war feel alive while leaving Foundry's walls, token vision, LOS, and fog exploration logic alone.
 
-## v0.2.0
+## v0.2.1
 
 Living Fog keeps Foundry's normal flat-color fog as the base and draws procedural brightness variation over that fog. While enabled, it does not use Foundry's map-derived persistent-vision rendering path.
 

@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.1
+
+- Fixed the v0.2.0 fragment shader compile failure by explicitly declaring its `screenDimensions` uniform when Foundry's flat-color shader does not declare it.
+- Removed the premature success notification which appeared before the GPU compiled the shader.
+- Updated the regression fixture to match the actual flat-color shader and cover the missing declaration.
+
 ## 0.2.0
 
 - Replaced the opaque replacement-material approach with Foundry's stock flat-color fog plus an independent procedural brightness overlay.

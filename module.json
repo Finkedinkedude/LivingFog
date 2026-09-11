@@ -2,7 +2,7 @@
   "id": "living-fog",
   "title": "Living Fog",
   "description": "Adds animated texture and flowing edges over Foundry VTT's flat fog of war without changing walls, token vision, or fog exploration logic.",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "authors": [
     {
       "name": "Finkedinkedude",
@@ -18,5 +18,5 @@
   ],
   "url": "https://github.com/Finkedinkedude/LivingFog",
   "manifest": "https://raw.githubusercontent.com/Finkedinkedude/LivingFog/main/module.json",
-  "download": "https://github.com/Finkedinkedude/LivingFog/releases/download/v0.2.0/living-fog.zip"
+  "download": "https://github.com/Finkedinkedude/LivingFog/releases/download/v0.2.1/living-fog.zip"
 }
