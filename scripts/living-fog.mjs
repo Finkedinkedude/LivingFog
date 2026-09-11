@@ -1,5 +1,8 @@
 const MODULE_ID = "living-fog";
+<<<<<<< HEAD
 const VERSION = "0.1.1";
+=======
+>>>>>>> origin/main
 
 const SETTINGS = {
   enabled: "enabled",
@@ -29,7 +32,10 @@ Hooks.once("init", () => {
 Hooks.once("ready", () => {
   readSettings();
   installTicker();
+<<<<<<< HEAD
   console.info(`${MODULE_ID} | Living Fog v${VERSION} ready.`);
+=======
+>>>>>>> origin/main
 });
 
 Hooks.on("canvasReady", () => {
@@ -43,7 +49,11 @@ Hooks.on("sightRefresh", () => {
 function registerSettings() {
   game.settings.register(MODULE_ID, SETTINGS.enabled, {
     name: "Enable Living Fog",
+<<<<<<< HEAD
     hint: "Replace hidden fog areas with an opaque animated fog material. Vision, walls, and fog exploration are unchanged.",
+=======
+    hint: "Animate fog-of-war coloration. This does not change vision, walls, or fog exploration.",
+>>>>>>> origin/main
     scope: "world",
     config: true,
     type: Boolean,
@@ -83,8 +93,13 @@ function registerSettings() {
   });
 
   game.settings.register(MODULE_ID, SETTINGS.strength, {
+<<<<<<< HEAD
     name: "Unexplored Fog Texture Strength",
     hint: "Brightness variation inside completely unexplored fog. The fog remains opaque; this only changes the animated texture.",
+=======
+    name: "Unexplored Fog Strength",
+    hint: "Brightness variation inside completely unexplored fog. 0 disables the effect there.",
+>>>>>>> origin/main
     scope: "world",
     config: true,
     type: Number,
@@ -97,8 +112,13 @@ function registerSettings() {
   });
 
   game.settings.register(MODULE_ID, SETTINGS.exploredStrength, {
+<<<<<<< HEAD
     name: "Explored Fog Texture Strength",
     hint: "Brightness variation in previously explored areas which are not currently visible. These areas remain opaque while Living Fog is enabled.",
+=======
+    name: "Explored Fog Strength",
+    hint: "Brightness variation in previously explored areas which are not currently visible.",
+>>>>>>> origin/main
     scope: "world",
     config: true,
     type: Number,
@@ -133,10 +153,13 @@ function patchVisibilityShader() {
   VisibilityFilter._createFragmentShader = function(options = {}) {
     let source = original(options);
 
+<<<<<<< HEAD
     // Persistent-vision mode uses a different composition path. Leave it untouched rather
     // than risk altering a shader layout we do not explicitly support yet.
     if (options?.persistentVision) return source;
 
+=======
+>>>>>>> origin/main
     const uniformMarker = "uniform vec3 unexploredColor;";
     const compositionMarker = "vec4 fow = mix(unexplored, explored, max(r,v));";
 
@@ -147,7 +170,10 @@ function patchVisibilityShader() {
 
     const fogShaderCode = `
 ${uniformMarker}
+<<<<<<< HEAD
 uniform float uLivingFogEnabled;
+=======
+>>>>>>> origin/main
 uniform float uLivingFogTime;
 uniform float uLivingFogScale;
 uniform float uLivingFogStrength;
@@ -192,10 +218,13 @@ float lfFbm(vec2 p) {
     source = source.replace(uniformMarker, fogShaderCode);
 
     const fogComposition = `
+<<<<<<< HEAD
 // Preserve Foundry's stock fog composition so disabling Living Fog restores the
 // original appearance without requiring the visibility shader to be rebuilt.
 vec4 lfStockFow = mix(unexplored, explored, max(r,v));
 
+=======
+>>>>>>> origin/main
 vec2 lfResolution = max(screenDimensions, vec2(1.0));
 vec2 lfUv = gl_FragCoord.xy / lfResolution;
 vec2 lfDrift = vec2(0.071, 0.037) * uLivingFogTime;
@@ -205,6 +234,7 @@ float lfDetail = lfFbm((lfUv * (uLivingFogScale * 1.85)) - (lfDrift * 0.63) + ve
 float lfPattern = smoothstep(0.20, 0.82, mix(lfBase, lfDetail, 0.35));
 float lfCentered = (lfPattern - 0.50) * 2.0;
 
+<<<<<<< HEAD
 // Important: these colors are created independently from the map/primary texture.
 // Both explored and unexplored fog are fully opaque. This prevents map detail from
 // bleeding through walls while still allowing the fog material itself to move.
@@ -215,6 +245,14 @@ vec4 lfExploredFog = vec4(lfExploredRgb, 1.0);
 vec4 lfLivingFow = mix(lfUnexploredFog, lfExploredFog, max(r,v));
 
 vec4 fow = mix(lfStockFow, lfLivingFow, step(0.5, uLivingFogEnabled));`;
+=======
+vec4 lfUnexplored = unexplored;
+vec4 lfExplored = explored;
+lfUnexplored.rgb = clamp(lfUnexplored.rgb + vec3(lfCentered * uLivingFogStrength), 0.0, 1.0);
+lfExplored.rgb = clamp(lfExplored.rgb + vec3(lfCentered * uLivingFogExploredStrength), 0.0, 1.0);
+
+vec4 fow = mix(lfUnexplored, lfExplored, max(r,v));`;
+>>>>>>> origin/main
 
     source = source.replace(compositionMarker, fogComposition);
     state.shaderPatchMatched = true;
@@ -241,20 +279,34 @@ function updateAnimation() {
   if (!filter?.uniforms) return;
 
   const t = performance.now() / 1000;
+<<<<<<< HEAD
   filter.uniforms.uLivingFogEnabled = state.enabled ? 1 : 0;
   filter.uniforms.uLivingFogTime = t * state.speed;
   filter.uniforms.uLivingFogScale = state.scale;
   filter.uniforms.uLivingFogStrength = state.strength;
   filter.uniforms.uLivingFogExploredStrength = state.exploredStrength;
+=======
+  filter.uniforms.uLivingFogTime = t * state.speed;
+  filter.uniforms.uLivingFogScale = state.scale;
+  filter.uniforms.uLivingFogStrength = state.enabled ? state.strength : 0;
+  filter.uniforms.uLivingFogExploredStrength = state.enabled ? state.exploredStrength : 0;
+>>>>>>> origin/main
 }
 
 function applyUniforms() {
   const filter = canvas?.visibility?.filter;
   if (!filter?.uniforms) return;
 
+<<<<<<< HEAD
   filter.uniforms.uLivingFogEnabled = state.enabled ? 1 : 0;
   filter.uniforms.uLivingFogTime = (performance.now() / 1000) * state.speed;
   filter.uniforms.uLivingFogScale = state.scale;
   filter.uniforms.uLivingFogStrength = state.strength;
   filter.uniforms.uLivingFogExploredStrength = state.exploredStrength;
+=======
+  filter.uniforms.uLivingFogTime = (performance.now() / 1000) * state.speed;
+  filter.uniforms.uLivingFogScale = state.scale;
+  filter.uniforms.uLivingFogStrength = state.enabled ? state.strength : 0;
+  filter.uniforms.uLivingFogExploredStrength = state.enabled ? state.exploredStrength : 0;
+>>>>>>> origin/main
 }

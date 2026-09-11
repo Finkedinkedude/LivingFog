@@ -1,8 +1,13 @@
 {
   "id": "living-fog",
   "title": "Living Fog",
+<<<<<<< HEAD
   "description": "Adds an opaque animated fog material to Foundry VTT's fog of war without changing walls, token vision, or fog exploration logic.",
   "version": "0.1.1",
+=======
+  "description": "Adds subtle procedural motion to Foundry VTT's fog of war without changing walls, token vision, or fog exploration logic.",
+  "version": "0.1.0",
+>>>>>>> origin/main
   "authors": [
     {
       "name": "Finkedinkedude",
@@ -18,5 +23,9 @@
   ],
   "url": "https://github.com/Finkedinkedude/LivingFog",
   "manifest": "https://raw.githubusercontent.com/Finkedinkedude/LivingFog/main/module.json",
+<<<<<<< HEAD
   "download": "https://github.com/Finkedinkedude/LivingFog/releases/download/v0.1.1/living-fog.zip"
+=======
+  "download": "https://github.com/Finkedinkedude/LivingFog/releases/download/v0.1.0/living-fog.zip"
+>>>>>>> origin/main
 }

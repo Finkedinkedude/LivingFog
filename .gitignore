@@ -1,5 +1,9 @@
 .DS_Store
 Thumbs.db
+<<<<<<< HEAD
 .vscode/*.log
 dist/*.zip
 !dist/.gitkeep
+=======
+*.log
+>>>>>>> origin/main
