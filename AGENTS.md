@@ -10,7 +10,7 @@ The purpose of this module is purely visual: make hidden fog-of-war areas feel a
 
 Repository: https://github.com/Finkedinkedude/LivingFog
 Module id: `living-fog`
-Current local development version in this project: `0.1.1`
+Current local development version in this project: `0.1.2`
 Target Foundry version: v14, currently verified against the v14.365 API layout.
 
 ## Non-negotiable behavior
@@ -37,7 +37,7 @@ The first prototype injected procedural noise by brightening Foundry's existing 
 
 Do not return to an implementation that makes hidden fog partially transparent or derives the animated pattern from underlying map pixels.
 
-### v0.1.1 - current approach
+### v0.1.1 - opaque fog approach
 
 The current code builds independent explored and unexplored fog colors with alpha `1.0`, applies procedural noise to those colors, and uses Foundry's existing visibility mask to cut out currently visible regions.
 
@@ -66,7 +66,13 @@ Important implementation requirements:
 - Keep the module dependency-free unless there is a strong reason not to.
 - Do not monkey-patch unrelated Foundry systems.
 - Prefer one narrow rendering hook over a pile of hooks.
-- Persistent-vision mode is currently bypassed deliberately because it uses a different composition path. Do not casually remove that guard without testing that path.
+- Normal and persistent-vision shader variants both receive the opaque composition when their source matches the supported v14 layout exactly once.
+
+### v0.1.2 - load and persistent-vision fix
+
+The repository previously contained committed merge-conflict markers, leaving both `module.json` and the module script invalid. The conflict is resolved in v0.1.2.
+
+The v0.1.1 code also bypassed the persistent-vision shader variant. That fallback could expose Foundry's map-derived explored fog through currently blocking walls. v0.1.2 applies the independent opaque explored/unexplored colors to this variant as well, while retaining strict source-marker checks.
 
 ## Current settings
 

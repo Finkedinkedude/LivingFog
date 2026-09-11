@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.2
+
+- Fixed committed merge-conflict markers which prevented the module manifest and script from loading.
+- Applied the opaque Living Fog material to Foundry's persistent-vision shader variant instead of falling back to map-derived explored fog.
+- Tightened shader-source validation so injection only occurs when each supported marker occurs exactly once.
+
 ## 0.1.1
 
 - Fixed map artwork bleeding through fogged areas.
